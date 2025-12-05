@@ -226,8 +226,8 @@ const SearchPanel = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => vo
         <div className="px-4 py-2 flex items-center justify-between cursor-pointer hover:bg-white/50 transition-colors group" onClick={onToggle}>
           <div className="flex items-center gap-2 text-slate-600">
              <LayoutDashboard size={16} className="text-blue-500" />
-             <span className="text-xs font-bold text-slate-700">高级筛选</span>
-             <span className="text-[10px] text-slate-400">点击展开更多搜索条件</span>
+             <span className="text-xs font-bold text-slate-700">数据与高级筛选</span>
+             <span className="text-[10px] text-slate-400">点击展开详细数据看板与搜索条件</span>
           </div>
           <ChevronDown size={14} className="text-slate-400" />
         </div>
@@ -466,8 +466,6 @@ const ActionCell = ({ orderId, onAction }: { orderId: number; onAction: (action:
   );
 };
 
-// ... ChatModal and CompleteOrderModal remain unchanged ...
-
 const ChatModal = ({ isOpen, onClose, role, order }: { isOpen: boolean; onClose: () => void; role: string; order: Order | null }) => {
   if (!isOpen || !order) return null;
   return createPortal(
@@ -598,23 +596,24 @@ const App = () => {
             <table className="w-full text-left border-collapse">
               <thead className="sticky top-0 z-20 shadow-sm">
                 <tr className="bg-slate-50 border-b-2 border-gray-300 text-xs font-bold uppercase text-slate-700 tracking-wider">
-                  <th className="px-4 py-2 whitespace-nowrap min-w-[100px]">手机号</th>
-                  <th className="px-4 py-2 min-w-[140px] whitespace-nowrap">服务项目</th>
-                  <th className="px-4 py-2 whitespace-nowrap w-[80px]">状态</th>
+                  <th className="px-4 py-2 whitespace-nowrap w-[110px]">手机号</th>
+                  <th className="px-4 py-2 w-[140px] whitespace-nowrap">服务项目</th>
+                  <th className="px-4 py-2 whitespace-nowrap w-[90px]">状态</th>
+                  {/* Removed weighted coefficient */}
                   <th className="px-4 py-2 whitespace-nowrap min-w-[120px]">地域</th>
-                  <th className="px-4 py-2 max-w-[100px] whitespace-nowrap">详细地址</th> 
+                  <th className="px-4 py-2 max-w-[120px] whitespace-nowrap">详细地址</th> 
                   <th className="px-4 py-2 max-w-[140px] whitespace-nowrap">详情</th>
-                  <th className="px-4 py-2 text-right whitespace-nowrap">总收款</th>
-                  <th className="px-4 py-2 text-right whitespace-nowrap">业绩</th>
-                  <th className="px-4 py-2 text-right whitespace-nowrap">成本</th>
-                  <th className="px-4 py-2 whitespace-nowrap">来源</th>
-                  <th className="px-4 py-2 min-w-[160px] whitespace-nowrap">订单号</th>
-                  <th className="px-4 py-2 whitespace-nowrap">工单号</th>
-                  <th className="px-4 py-2 whitespace-nowrap">录单时间</th> 
-                  <th className="px-4 py-2 whitespace-nowrap">派单时间</th>
-                  <th className="px-4 py-2 whitespace-nowrap text-center">联系人</th>
+                  <th className="px-4 py-2 text-right whitespace-nowrap w-[90px]">总收款</th>
+                  <th className="px-4 py-2 text-right whitespace-nowrap w-[90px]">业绩</th>
+                  <th className="px-4 py-2 text-right whitespace-nowrap w-[90px]">成本</th>
+                  <th className="px-4 py-2 whitespace-nowrap w-[80px]">来源</th>
+                  <th className="px-4 py-2 w-[180px] whitespace-nowrap">订单号</th>
+                  <th className="px-4 py-2 whitespace-nowrap w-[100px]">工单号</th>
+                  <th className="px-4 py-2 whitespace-nowrap w-[110px]">录单时间</th> 
+                  <th className="px-4 py-2 whitespace-nowrap w-[110px]">派单时间</th>
+                  <th className="px-4 py-2 whitespace-nowrap text-center w-[140px]">联系人</th>
                   <th className="px-4 py-2 whitespace-nowrap text-center min-w-[80px]">催单</th> 
-                  <th className="px-4 py-2 text-center sticky right-0 bg-slate-50 shadow-[-10px_0_10px_-10px_rgba(0,0,0,0.05)] z-10 whitespace-nowrap">操作</th>
+                  <th className="px-4 py-2 text-center sticky right-0 bg-slate-50 shadow-[-10px_0_10px_-10px_rgba(0,0,0,0.05)] z-10 whitespace-nowrap w-[70px]">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-300">
@@ -623,7 +622,7 @@ const App = () => {
                     <td className="px-4 py-2 text-slate-800 font-bold tabular-nums whitespace-nowrap align-middle" onMouseEnter={handleMouseEnterOther}>{order.mobile}</td>
                     
                     {/* Service Item - Removed Tooltip, Plain Text */}
-                    <td className="px-4 py-2 align-middle whitespace-nowrap" onMouseEnter={() => setHoveredTooltipCell({rowId: order.id, colKey: 'service'})}>
+                    <td className="px-4 py-2 align-middle whitespace-nowrap" onMouseEnter={handleMouseEnterOther}>
                       <ServiceItemCell item={order.serviceItem} />
                     </td>
                     
@@ -639,7 +638,7 @@ const App = () => {
                         </div>
                     </td>
                     <td className="px-4 py-2 align-middle" onMouseEnter={() => setHoveredTooltipCell({rowId: order.id, colKey: 'address'})}>
-                      <TooltipCell content={order.address} maxWidthClass="max-w-[100px]" showTooltip={hoveredTooltipCell?.rowId === order.id && hoveredTooltipCell?.colKey === 'address'} />
+                      <TooltipCell content={order.address} maxWidthClass="max-w-[120px]" showTooltip={hoveredTooltipCell?.rowId === order.id && hoveredTooltipCell?.colKey === 'address'} />
                     </td>
                     <td className="px-4 py-2 align-middle" onMouseEnter={() => setHoveredTooltipCell({rowId: order.id, colKey: 'details'})}>
                       <TooltipCell content={order.details} maxWidthClass="max-w-[140px]" showTooltip={hoveredTooltipCell?.rowId === order.id && hoveredTooltipCell?.colKey === 'details'} />
