@@ -32,7 +32,8 @@ import {
   Wallet,
   ClipboardList,
   Megaphone,
-  Bell
+  Bell,
+  Check
 } from 'lucide-react';
 
 // --- 类型定义 ---
@@ -174,11 +175,14 @@ const NotificationBar = () => {
 };
 
 // 常驻操作栏
-const ActionBar = () => {
+const ActionBar = ({ onRecord }: { onRecord: () => void }) => {
   return (
     <div className="flex items-center gap-6 mb-3 px-1">
       <div className="flex items-center gap-3">
-        <button className="h-8 px-5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded shadow-md shadow-blue-200 flex items-center gap-1.5 transition-all active:scale-95 font-medium">
+        <button 
+          onClick={onRecord}
+          className="h-8 px-5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded shadow-md shadow-blue-200 flex items-center gap-1.5 transition-all active:scale-95 font-medium"
+        >
           <Plus size={14} /> 录单
         </button>
         <button className="h-8 px-5 bg-[#6366f1] hover:bg-[#4f46e5] text-white text-xs rounded shadow-md shadow-indigo-200 flex items-center gap-1.5 transition-all active:scale-95 font-medium">
@@ -212,7 +216,7 @@ const SearchPanel = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => vo
 
   // BlockStat component included here for completeness
   const BlockStat = ({ label, value, color = "text-slate-700", highlight = false }: { label: string, value: string | number, color?: string, highlight?: boolean }) => (
-    <div className="flex flex-col items-center justify-center border border-blue-100 rounded px-2 py-1.5 flex-1 h-[42px] transition-all hover:bg-blue-50/30 hover:border-blue-200 shadow-sm bg-transparent">
+    <div className="flex flex-col items-center justify-center border border-blue-100 rounded px-2 py-1.5 flex-1 h-[42px] transition-all hover:bg-blue-50/30 hover:border-blue-200 shadow-sm bg-white">
       <span className="text-[10px] text-slate-500 leading-none mb-1">{label}</span>
       <span className={`font-mono font-bold ${highlight ? 'text-emerald-600' : color} text-xs leading-none`}>{value}</span>
     </div>
@@ -311,6 +315,242 @@ const SearchPanel = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => vo
     </div>
   );
 };
+
+// --- 新增：录单弹窗组件 ---
+const RecordOrderModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const [isPasteMode, setIsPasteMode] = useState(false);
+  const [pastedImages, setPastedImages] = useState<string[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]); // 模拟已上传图片
+  const pasteAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+      if (isPasteMode && pasteAreaRef.current) {
+          pasteAreaRef.current.focus();
+      }
+  }, [isPasteMode]);
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const blob = items[i].getAsFile();
+        if (blob) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            if (event.target?.result) {
+              setPastedImages(prev => [...prev, event.target!.result as string]);
+            }
+          };
+          reader.readAsDataURL(blob);
+        }
+      }
+    }
+  };
+
+  const confirmUpload = () => {
+      setUploadedImages(prev => [...prev, ...pastedImages]);
+      setPastedImages([]);
+      setIsPasteMode(false);
+  };
+
+  if (!isOpen) return null;
+  
+  return createPortal(
+    <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200">
+       <div className="bg-white w-[1000px] h-[85vh] rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+          {/* Header */}
+          <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-bold text-gray-800">新增订单</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors"><X size={24}/></button>
+          </div>
+          
+          {/* Content - Scrollable */}
+          <div className="flex-1 overflow-y-auto p-6 flex gap-6">
+             {/* Left Form */}
+             <div className="flex-1 space-y-5">
+                {/* Service Item */}
+                <div className="grid grid-cols-[80px_1fr] gap-4 items-center">
+                    <label className="text-sm font-medium text-gray-700 text-right"><span className="text-red-500">*</span> 服务项目</label>
+                    <div className="flex items-center gap-4">
+                         <input type="text" placeholder="请输入关键词搜索" className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+                         <span className="text-xs text-gray-500 whitespace-nowrap">质保期： 展示质保期</span>
+                    </div>
+                </div>
+                
+                {/* Region */}
+                <div className="grid grid-cols-[80px_1fr] gap-4 items-center">
+                    <label className="text-sm font-medium text-gray-700 text-right"><span className="text-red-500">*</span> 地域</label>
+                    <input type="text" placeholder="请输入关键词搜索" className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+                </div>
+                
+                {/* Address */}
+                <div className="grid grid-cols-[80px_1fr] gap-4 items-start">
+                    <label className="text-sm font-medium text-gray-700 text-right mt-2"><span className="text-red-500">*</span> 地址</label>
+                    <textarea placeholder="请输入内容" className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 h-20 resize-none"></textarea>
+                </div>
+                
+                {/* Details */}
+                <div className="grid grid-cols-[80px_1fr] gap-4 items-start">
+                    <label className="text-sm font-medium text-gray-700 text-right mt-2">详情</label>
+                    <textarea placeholder="请输入详情" className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 h-20 resize-none"></textarea>
+                </div>
+                
+                {/* Expected Time */}
+                <div className="grid grid-cols-[80px_1fr] gap-4 items-start">
+                    <label className="text-sm font-medium text-gray-700 text-right mt-2">期望时间</label>
+                    <div className="border border-blue-300 rounded-lg p-4 bg-blue-50/30 border-dashed w-full">
+                        <div className="flex gap-6 mb-3">
+                             <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                <input type="radio" name="expectedTimeType" className="text-blue-600 focus:ring-blue-500" /> 尽快上门
+                             </label>
+                             <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                                <input type="radio" name="expectedTimeType" className="text-blue-600 focus:ring-blue-500" /> 先联系
+                             </label>
+                        </div>
+                        <div className="flex items-center gap-2 mb-3">
+                             <span className="text-sm text-gray-600 w-16">希望日期:</span>
+                             <input type="date" className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                             <span className="text-sm text-gray-600 w-16">希望时间:</span>
+                             <input type="time" className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm" />
+                             <span className="text-gray-400">-</span>
+                             <input type="time" className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Mobile & Extension */}
+                <div className="grid grid-cols-[80px_1fr] gap-4 items-center">
+                    <label className="text-sm font-medium text-gray-700 text-right"><span className="text-red-500">*</span> 手机号码</label>
+                    <div className="flex gap-2">
+                        <input type="text" placeholder="请输入手机号码" className="flex-[2] border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+                        <input type="text" placeholder="分机号" className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+                    </div>
+                </div>
+
+                {/* Customer Name */}
+                <div className="grid grid-cols-[80px_1fr] gap-4 items-center">
+                    <label className="text-sm font-medium text-gray-700 text-right">客户名称</label>
+                    <input type="text" placeholder="请输入内容" className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+                </div>
+                
+                {/* Source & Work Phone */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-[80px_1fr] gap-4 items-center">
+                        <label className="text-sm font-medium text-gray-700 text-right"><span className="text-red-500">*</span> 订单来源</label>
+                        <select className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 bg-white">
+                           <option>请选择</option>
+                        </select>
+                    </div>
+                    <div className="grid grid-cols-[60px_1fr] gap-4 items-center">
+                         <label className="text-sm font-medium text-gray-700 text-right"><span className="text-red-500">*</span> 工作机</label>
+                         <input type="text" placeholder="请输入关键词搜索" className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
+                    </div>
+                </div>
+
+                {/* Image Upload Section (New) */}
+                <div className="grid grid-cols-[80px_1fr] gap-4 items-start">
+                    <label className="text-sm font-medium text-gray-700 text-right mt-2">图片附件</label>
+                    <div className="w-full">
+                         {!isPasteMode ? (
+                             <div className="flex items-center gap-3">
+                                 <button 
+                                    onClick={() => setIsPasteMode(true)}
+                                    className="flex items-center gap-2 px-4 py-2 border border-dashed border-blue-300 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors text-sm"
+                                 >
+                                    <ImageIcon size={16} />
+                                    上传图片 (支持粘贴)
+                                 </button>
+                                 {uploadedImages.length > 0 && (
+                                    <div className="flex gap-2 overflow-x-auto py-1">
+                                       {uploadedImages.map((img, idx) => (
+                                          <img key={idx} src={img} alt="uploaded" className="h-10 w-10 object-cover rounded border border-gray-200" />
+                                       ))}
+                                    </div>
+                                 )}
+                             </div>
+                         ) : (
+                             <div 
+                                ref={pasteAreaRef}
+                                tabIndex={0}
+                                onPaste={handlePaste}
+                                className="w-full border-2 border-dashed border-blue-400 bg-blue-50 rounded-lg p-4 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-all"
+                             >
+                                <div className="text-center text-sm text-blue-600 mb-3 font-medium">
+                                    请按 <kbd className="bg-white border border-gray-300 rounded px-1.5 py-0.5 text-xs text-gray-600 font-sans mx-1">Ctrl + V</kbd> 粘贴图片
+                                </div>
+                                
+                                {pastedImages.length > 0 && (
+                                    <div className="grid grid-cols-5 gap-3 mb-4 max-h-40 overflow-y-auto p-1">
+                                        {pastedImages.map((img, idx) => (
+                                            <div key={idx} className="relative group">
+                                                <img src={img} alt="pasted" className="w-full h-20 object-cover rounded border border-gray-200 shadow-sm" />
+                                                <div className="absolute top-1 right-1 bg-black/50 rounded-full p-0.5 cursor-pointer hover:bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setPastedImages(prev => prev.filter((_, i) => i !== idx))}>
+                                                   <X size={12} />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => {setIsPasteMode(false); setPastedImages([]);}} className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-200 rounded">取消</button>
+                                    <button onClick={confirmUpload} className="px-4 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 shadow-sm flex items-center gap-1">
+                                        <Check size={12} /> 确认上传 {pastedImages.length > 0 && `(${pastedImages.length})`}
+                                    </button>
+                                </div>
+                             </div>
+                         )}
+                    </div>
+                </div>
+             </div>
+
+             {/* Right Smart Recognition */}
+             <div className="w-[350px] flex flex-col gap-4 border-l border-gray-100 pl-6">
+                 <div className="relative">
+                    <textarea className="w-full h-32 border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:border-blue-500 resize-none" placeholder="在此粘贴或输入内容，自动识别手机号码、服务项目、地址等信息"></textarea>
+                 </div>
+                 
+                 <div className="text-xs text-gray-500 space-y-2">
+                    <p>例如：</p>
+                    <p>【客】，iyang761227,13801109798，北京市海淀区，南四环.益桥附近，燃气灶维修，点不着火，上门费30，下单30，咨询</p>
+                    <p>美团，18613313500，保定市竞秀区，建南街道，租赁影棚，未报价，27</p>
+                    <p>线7，18729306628，陕西省西安市雁塔区，西安高新华府，打印机维修，小问题维修100，已加微信，定金30，住这儿</p>
+                 </div>
+
+                 <div className="flex items-center justify-between mt-2">
+                    <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded text-sm transition-colors shadow-sm">自动识别</button>
+                    <div className="flex items-center gap-2">
+                       {/* Toggle Switch Mock */}
+                       <div className="w-8 h-4 bg-blue-500 rounded-full relative cursor-pointer">
+                          <div className="absolute right-0.5 top-0.5 w-3 h-3 bg-white rounded-full"></div>
+                       </div>
+                       <span className="text-xs text-blue-600">自动获取价格</span>
+                    </div>
+                 </div>
+
+                 <div className="mt-4 flex-1 flex flex-col">
+                    <h4 className="text-sm font-bold text-gray-700 mb-2">草稿暂存区</h4>
+                    <div className="flex-1 bg-gray-50 rounded border border-gray-200 min-h-[100px]"></div>
+                 </div>
+             </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
+              <button className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded text-sm transition-colors shadow-sm">存入草稿箱</button>
+              <button onClick={onClose} className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded text-sm hover:bg-gray-50 transition-colors">取消</button>
+              <button onClick={onClose} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors shadow-sm">确定</button>
+          </div>
+       </div>
+    </div>,
+    document.body
+  );
+}
+
+// ... TooltipCell, ServiceItemCell, StatusCell, OrderNoCell, ActionCell, ChatModal, CompleteOrderModal ...
+// Re-defining unmodified components to ensure complete file
 
 const TooltipCell = ({ content, maxWidthClass = "max-w-[100px]", showTooltip }: { content: string, maxWidthClass?: string, showTooltip: boolean }) => {
   return (
@@ -540,6 +780,9 @@ const App = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20; 
 
+  // New state for Record Modal
+  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+
   // 状态管理
   const [orders, setOrders] = useState<Order[]>(FULL_MOCK_DATA);
 
@@ -588,48 +831,50 @@ const App = () => {
       <div className="max-w-[1800px] mx-auto w-full flex-1 flex flex-col">
         
         <NotificationBar />
-        <ActionBar />
+        
+        {/* Pass handler to open Record Modal */}
+        <ActionBar onRecord={() => setIsRecordModalOpen(true)} />
 
         <SearchPanel isOpen={isSearchOpen} onToggle={() => setIsSearchOpen(!isSearchOpen)} />
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden">
           <div className="overflow-x-auto flex-1 overflow-y-auto">
             <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 z-20 shadow-sm">
+              <thead className="sticky top-0 z-30 shadow-sm">
                 <tr className="bg-slate-50 border-b-2 border-gray-300 text-xs font-bold uppercase text-slate-700 tracking-wider">
-                  <th className="px-4 py-2 whitespace-nowrap w-[110px]">手机号</th>
-                  <th className="px-4 py-2 w-[140px] whitespace-nowrap">服务项目</th>
-                  <th className="px-4 py-2 whitespace-nowrap w-[90px]">状态</th>
+                  <th className="px-2 py-2 whitespace-nowrap w-[110px] bg-slate-50">手机号</th>
+                  <th className="px-2 py-2 w-[140px] whitespace-nowrap bg-slate-50">服务项目</th>
+                  <th className="px-2 py-2 whitespace-nowrap w-[90px] bg-slate-50">状态</th>
                   {/* Removed weighted coefficient */}
-                  <th className="px-4 py-2 whitespace-nowrap min-w-[120px]">地域</th>
-                  <th className="px-4 py-2 max-w-[120px] whitespace-nowrap">详细地址</th> 
-                  <th className="px-4 py-2 max-w-[140px] whitespace-nowrap">详情</th>
-                  <th className="px-4 py-2 text-right whitespace-nowrap w-[90px]">总收款</th>
-                  <th className="px-4 py-2 text-right whitespace-nowrap w-[90px]">业绩</th>
-                  <th className="px-4 py-2 text-right whitespace-nowrap w-[90px]">成本</th>
-                  <th className="px-4 py-2 whitespace-nowrap w-[80px]">来源</th>
-                  <th className="px-4 py-2 w-[180px] whitespace-nowrap">订单号</th>
-                  <th className="px-4 py-2 whitespace-nowrap w-[100px]">工单号</th>
-                  <th className="px-4 py-2 whitespace-nowrap w-[110px]">录单时间</th> 
-                  <th className="px-4 py-2 whitespace-nowrap w-[110px]">派单时间</th>
-                  <th className="px-4 py-2 whitespace-nowrap text-center w-[140px]">联系人</th>
-                  <th className="px-4 py-2 whitespace-nowrap text-center min-w-[80px]">催单</th> 
-                  <th className="px-4 py-2 text-center sticky right-0 bg-slate-50 shadow-[-10px_0_10px_-10px_rgba(0,0,0,0.05)] z-10 whitespace-nowrap w-[70px]">操作</th>
+                  <th className="px-2 py-2 whitespace-nowrap min-w-[120px] bg-slate-50">地域</th>
+                  <th className="px-2 py-2 max-w-[120px] whitespace-nowrap bg-slate-50">详细地址</th> 
+                  <th className="px-2 py-2 max-w-[140px] whitespace-nowrap bg-slate-50">详情</th>
+                  <th className="px-2 py-2 text-right whitespace-nowrap w-[90px] bg-slate-50">总收款</th>
+                  <th className="px-2 py-2 text-right whitespace-nowrap w-[90px] bg-slate-50">业绩</th>
+                  <th className="px-2 py-2 text-right whitespace-nowrap w-[90px] bg-slate-50">成本</th>
+                  <th className="px-2 py-2 whitespace-nowrap w-[80px] bg-slate-50">来源</th>
+                  <th className="px-2 py-2 w-[180px] whitespace-nowrap bg-slate-50">订单号</th>
+                  <th className="px-2 py-2 whitespace-nowrap w-[100px] bg-slate-50">工单号</th>
+                  <th className="px-2 py-2 whitespace-nowrap w-[110px] bg-slate-50">录单时间</th> 
+                  <th className="px-2 py-2 whitespace-nowrap w-[110px] bg-slate-50">派单时间</th>
+                  <th className="px-2 py-2 whitespace-nowrap text-center w-[140px] bg-slate-50">联系人</th>
+                  <th className="px-2 py-2 whitespace-nowrap text-center min-w-[80px] bg-slate-50">催单</th> 
+                  <th className="px-2 py-2 text-center sticky right-0 bg-slate-50 shadow-[-10px_0_10px_-10px_rgba(0,0,0,0.05)] z-10 whitespace-nowrap w-[70px]">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-300">
                 {currentData.map((order, index) => (
                   <tr key={order.id} onMouseLeave={handleMouseEnterOther} className="bg-white even:bg-blue-50 hover:!bg-blue-100 transition-colors group text-xs border-b border-gray-300 last:border-0 align-middle">
-                    <td className="px-4 py-2 text-slate-800 font-bold tabular-nums whitespace-nowrap align-middle" onMouseEnter={handleMouseEnterOther}>{order.mobile}</td>
+                    <td className="px-2 py-2 text-slate-800 font-bold tabular-nums whitespace-nowrap align-middle" onMouseEnter={handleMouseEnterOther}>{order.mobile}</td>
                     
                     {/* Service Item - Removed Tooltip, Plain Text */}
-                    <td className="px-4 py-2 align-middle whitespace-nowrap" onMouseEnter={handleMouseEnterOther}>
+                    <td className="px-2 py-2 align-middle whitespace-nowrap" onMouseEnter={handleMouseEnterOther}>
                       <ServiceItemCell item={order.serviceItem} />
                     </td>
                     
-                    <td className="px-4 py-2 align-middle" onMouseEnter={() => setHoveredTooltipCell({rowId: order.id, colKey: 'service'})}>
+                    <td className="px-2 py-2 align-middle" onMouseEnter={() => setHoveredTooltipCell({rowId: order.id, colKey: 'service'})}>
                       <StatusCell order={order} />
                     </td>
-                    <td className="px-4 py-2 text-slate-700 whitespace-nowrap align-middle" onMouseEnter={handleMouseEnterOther}>
+                    <td className="px-2 py-2 text-slate-700 whitespace-nowrap align-middle" onMouseEnter={handleMouseEnterOther}>
                         <div className="relative pr-8"> 
                             {order.region}
                             <span className="absolute bottom-0 right-0 text-[9px] text-blue-600 border border-blue-200 bg-blue-50 px-1 rounded">
@@ -637,21 +882,21 @@ const App = () => {
                             </span>
                         </div>
                     </td>
-                    <td className="px-4 py-2 align-middle" onMouseEnter={() => setHoveredTooltipCell({rowId: order.id, colKey: 'address'})}>
+                    <td className="px-2 py-2 align-middle" onMouseEnter={() => setHoveredTooltipCell({rowId: order.id, colKey: 'address'})}>
                       <TooltipCell content={order.address} maxWidthClass="max-w-[120px]" showTooltip={hoveredTooltipCell?.rowId === order.id && hoveredTooltipCell?.colKey === 'address'} />
                     </td>
-                    <td className="px-4 py-2 align-middle" onMouseEnter={() => setHoveredTooltipCell({rowId: order.id, colKey: 'details'})}>
+                    <td className="px-2 py-2 align-middle" onMouseEnter={() => setHoveredTooltipCell({rowId: order.id, colKey: 'details'})}>
                       <TooltipCell content={order.details} maxWidthClass="max-w-[140px]" showTooltip={hoveredTooltipCell?.rowId === order.id && hoveredTooltipCell?.colKey === 'details'} />
                     </td>
-                    <td className="px-4 py-2 text-right font-bold text-slate-900 tabular-nums align-middle whitespace-nowrap" onMouseEnter={handleMouseEnterOther}>{formatCurrency(order.totalAmount)}</td>
-                    <td className="px-4 py-2 text-right font-bold text-emerald-600 tabular-nums align-middle whitespace-nowrap" onMouseEnter={handleMouseEnterOther}>{formatCurrency(order.totalAmount - order.cost)}</td>
-                    <td className="px-4 py-2 text-right text-slate-500 font-medium tabular-nums align-middle whitespace-nowrap" onMouseEnter={handleMouseEnterOther}>{formatCurrency(order.cost)}</td>
-                    <td className="px-4 py-2 align-middle" onMouseEnter={handleMouseEnterOther}><span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] border border-slate-200 whitespace-nowrap font-medium">{order.source}</span></td>
-                    <td className="px-4 py-2 align-middle" onMouseEnter={handleMouseEnterOther}><OrderNoCell orderNo={order.orderNo} hasAdvancePayment={order.hasAdvancePayment} depositAmount={order.depositAmount} /></td>
-                    <td className="px-4 py-2 text-slate-500 font-mono text-[10px] whitespace-nowrap align-middle" onMouseEnter={handleMouseEnterOther}>{order.workOrderNo}</td>
-                    <td className="px-4 py-2 text-slate-400 text-[10px] whitespace-nowrap tabular-nums align-middle" onMouseEnter={handleMouseEnterOther}>{order.recordTime}</td>
-                    <td className="px-4 py-2 text-slate-500 text-[10px] whitespace-nowrap tabular-nums align-middle" onMouseEnter={handleMouseEnterOther}>{order.dispatchTime}</td>
-                    <td className="px-4 py-2 align-middle text-center" onMouseEnter={handleMouseEnterOther}>
+                    <td className="px-2 py-2 text-right font-bold text-slate-900 tabular-nums align-middle whitespace-nowrap" onMouseEnter={handleMouseEnterOther}>{formatCurrency(order.totalAmount)}</td>
+                    <td className="px-2 py-2 text-right font-bold text-emerald-600 tabular-nums align-middle whitespace-nowrap" onMouseEnter={handleMouseEnterOther}>{formatCurrency(order.totalAmount - order.cost)}</td>
+                    <td className="px-2 py-2 text-right text-slate-500 font-medium tabular-nums align-middle whitespace-nowrap" onMouseEnter={handleMouseEnterOther}>{formatCurrency(order.cost)}</td>
+                    <td className="px-2 py-2 align-middle" onMouseEnter={handleMouseEnterOther}><span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] border border-slate-200 whitespace-nowrap font-medium">{order.source}</span></td>
+                    <td className="px-2 py-2 align-middle" onMouseEnter={handleMouseEnterOther}><OrderNoCell orderNo={order.orderNo} hasAdvancePayment={order.hasAdvancePayment} depositAmount={order.depositAmount} /></td>
+                    <td className="px-2 py-2 text-slate-500 font-mono text-[10px] whitespace-nowrap align-middle" onMouseEnter={handleMouseEnterOther}>{order.workOrderNo}</td>
+                    <td className="px-2 py-2 text-slate-400 text-[10px] whitespace-nowrap tabular-nums align-middle" onMouseEnter={handleMouseEnterOther}>{order.recordTime}</td>
+                    <td className="px-2 py-2 text-slate-500 text-[10px] whitespace-nowrap tabular-nums align-middle" onMouseEnter={handleMouseEnterOther}>{order.dispatchTime}</td>
+                    <td className="px-2 py-2 align-middle text-center" onMouseEnter={handleMouseEnterOther}>
                       <div className="flex flex-row gap-1 justify-center items-center">
                         <button onClick={() => handleOpenChat('派单员', order)} className="text-[10px] px-1.5 py-0.5 rounded border border-slate-200 bg-white hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-colors whitespace-nowrap font-medium">
                           派单员
@@ -661,10 +906,10 @@ const App = () => {
                       </div>
                     </td>
                     {/* Updated Reminder Column */}
-                    <td className="px-4 py-2 align-middle text-center" onMouseEnter={handleMouseEnterOther}>
+                    <td className="px-2 py-2 align-middle text-center" onMouseEnter={handleMouseEnterOther}>
                        <ReminderCell order={order} onRemind={handleRemindOrder} />
                     </td>
-                    <td className="px-4 py-2 text-center sticky right-0 bg-slate-50 shadow-[-10px_0_10px_-10px_rgba(0,0,0,0.05)] z-10 whitespace-nowrap" onMouseEnter={handleMouseEnterOther}><ActionCell orderId={order.id} onAction={handleAction} /></td>
+                    <td className="px-2 py-2 text-center sticky right-0 bg-slate-50 shadow-[-10px_0_10px_-10px_rgba(0,0,0,0.05)] z-10 whitespace-nowrap"><ActionCell orderId={order.id} onAction={handleAction} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -680,6 +925,7 @@ const App = () => {
           </div>
         </div>
       </div>
+      <RecordOrderModal isOpen={isRecordModalOpen} onClose={() => setIsRecordModalOpen(false)} />
       <CompleteOrderModal isOpen={completeModalOpen} onClose={() => setCompleteModalOpen(false)} order={currentOrder} />
       <ChatModal isOpen={chatState.isOpen} onClose={() => setChatState(prev => ({ ...prev, isOpen: false }))} role={chatState.role} order={chatState.order} />
     </div>
