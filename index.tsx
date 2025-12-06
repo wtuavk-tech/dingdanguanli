@@ -72,12 +72,12 @@ interface Order {
   isReminded: boolean; 
 }
 
-// --- 辅助函数：智能金额格式化 ---
+// --- 辅助函数 ---
 const formatCurrency = (amount: number) => {
   return Number.isInteger(amount) ? amount.toString() : amount.toFixed(1);
 };
 
-// --- 自动生成 128 条 Mock 数据 ---
+// --- Mock 数据生成 ---
 const generateMockData = (): Order[] => {
   const services = ['家庭保洁日常', '深度家电清洗', '甲醛治理', '玻璃清洗', '管道疏通', '空调清洗', '开荒保洁', '收纳整理', '沙发清洗'];
   const regions = ['北京市/朝阳区', '上海市/浦东新区', '深圳市/南山区', '杭州市/西湖区', '成都市/武侯区', '广州市/天河区', '武汉市/江汉区', '南京市/鼓楼区'];
@@ -141,9 +141,8 @@ const generateMockData = (): Order[] => {
 
 const FULL_MOCK_DATA = generateMockData();
 
-// --- 组件部分 ---
+// --- 组件定义 ---
 
-// 通知公告栏
 const NotificationBar = () => {
   return (
     <div className="mb-3 bg-orange-50 border border-orange-100 rounded-lg px-4 py-2 flex items-center gap-3 overflow-hidden relative">
@@ -175,7 +174,6 @@ const NotificationBar = () => {
   );
 };
 
-// 常驻操作栏
 const ActionBar = ({ onRecord }: { onRecord: () => void }) => {
   return (
     <div className="flex items-center gap-6 mb-3 px-1">
@@ -203,74 +201,70 @@ const ActionBar = ({ onRecord }: { onRecord: () => void }) => {
   );
 };
 
+const BlockStat = ({ label, value, color = "text-slate-700", highlight = false }: { label: string, value: string | number, color?: string, highlight?: boolean }) => (
+  <div className="flex flex-col items-center justify-center border border-blue-100 rounded px-2 py-1.5 flex-1 h-[42px] transition-all hover:bg-blue-50/30 hover:border-blue-200 shadow-sm bg-white">
+    <span className="text-[10px] text-slate-500 leading-none mb-1">{label}</span>
+    <span className={`font-mono font-bold ${highlight ? 'text-emerald-600' : color} text-xs leading-none`}>{value}</span>
+  </div>
+);
+
 const SearchPanel = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) => {
   const [timeType, setTimeType] = useState('create');
   const [personType, setPersonType] = useState('order');
   const [otherType, setOtherType] = useState('status');
 
-  // Random Mock Data for Stats - unchanged
   const stats = {
-    record: { total: 128, error: 3, all: 135, afterSales: 5, refund: '450.5' },
-    dispatch: { today: 42, past: 86, other: 12, self: 30, single: 8, none: 2 },
-    perf: { rate: '98.5%', today: '12850.0', wechat: '5600.0', platform: '7250.0', offline: '0' }
+    record: 128,
+    error: 3,
+    conversion: '98.5%'
   };
 
-  // BlockStat component included here for completeness
-  const BlockStat = ({ label, value, color = "text-slate-700", highlight = false }: { label: string, value: string | number, color?: string, highlight?: boolean }) => (
-    <div className="flex flex-col items-center justify-center border border-blue-100 rounded px-2 py-1.5 flex-1 h-[42px] transition-all hover:bg-blue-50/30 hover:border-blue-200 shadow-sm bg-white">
-      <span className="text-[10px] text-slate-500 leading-none mb-1">{label}</span>
-      <span className={`font-mono font-bold ${highlight ? 'text-emerald-600' : color} text-xs leading-none`}>{value}</span>
-    </div>
-  );
-
   return (
-    <div className={`shadow-lg mb-3 transition-all duration-300 ease-out relative overflow-hidden border border-blue-100 rounded-lg bg-gradient-to-br from-[#f0f7ff] via-[#e6f4ff] to-[#dbeafe]`}>
+    <div className={`shadow-sm mb-3 transition-all duration-300 ease-out relative rounded-lg border border-blue-200 bg-[#F0F7FF]`}>
       
-      {/* 收起状态 */}
-      {!isOpen && (
-        <div className="px-4 py-2 flex items-center justify-between cursor-pointer hover:bg-white/50 transition-colors group" onClick={onToggle}>
-          <div className="flex items-center gap-2 text-slate-600">
-             <LayoutDashboard size={16} className="text-blue-500" />
-             <span className="text-xs font-bold text-slate-700">数据与高级筛选</span>
-             <span className="text-[10px] text-slate-400">点击展开详细数据看板与搜索条件</span>
-          </div>
-          <ChevronDown size={14} className="text-slate-400" />
-        </div>
-      )}
-      
-      {/* 展开状态 */}
+      {/* 1. 常驻数据概览条 (Header) */}
+      <div className="flex items-center justify-between px-6 py-3 min-h-[56px]">
+         <div className="flex items-center gap-12">
+            <div className="flex items-center gap-2 text-blue-700">
+               <Activity size={20} />
+               <span className="text-base font-bold tracking-wide">数据概览</span>
+            </div>
+            
+            <div className="flex items-center gap-12">
+               <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-600 font-medium">录单:</span>
+                  <span className="text-lg font-bold text-slate-900 font-mono">{stats.record}</span>
+               </div>
+               <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-600 font-medium">报错:</span>
+                  <span className="text-lg font-bold text-red-600 font-mono">{stats.error}</span>
+               </div>
+               <div className="flex items-center gap-2">
+                  <span className="text-sm text-slate-600 font-medium">转化率:</span>
+                  <span className="text-lg font-bold text-slate-900 font-mono">{stats.conversion}</span>
+               </div>
+            </div>
+         </div>
+
+         <button 
+            onClick={onToggle}
+            className={`flex items-center gap-1.5 text-sm font-medium transition-colors px-3 py-1.5 rounded-full ${isOpen ? 'text-blue-700 bg-blue-100' : 'text-blue-600 hover:bg-blue-100/50 hover:text-blue-700'}`}
+         >
+            <Search size={16} />
+            <span>{isOpen ? '收起高级筛选' : '点这高级筛选'}</span>
+            {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+         </button>
+      </div>
+
+      {/* 2. 展开后的筛选区域 (Filters) */}
       {isOpen && (
-        <div className="p-5 flex flex-col relative backdrop-blur-sm bg-white/60 animate-in fade-in slide-in-from-top-2 duration-200">
-           {/* Header */}
-           <div className="flex justify-between items-center mb-4 h-6 border-b border-blue-100 pb-2">
-              <div className="flex items-center gap-2">
-                 <Search size={16} className="text-blue-600" />
-                 <h3 className="text-sm font-bold text-slate-800">高级筛选</h3>
-              </div>
-              <button onClick={onToggle} className="text-[10px] text-slate-400 hover:text-blue-600 flex items-center gap-1 hover:bg-blue-50 px-2 py-1 rounded transition-all">
-                 <ChevronUp size={12} /> 收起
-              </button>
-           </div>
-
-           {/* Search Inputs Grid */}
-           <div className="flex flex-wrap gap-4 items-center">
-              {/* 1. 时间搜索 */}
-              <div className="flex items-center gap-2 bg-white border border-blue-100 p-1 rounded hover:border-blue-300 transition-colors shadow-sm h-[42px] flex-1 min-w-[300px]">
-                <div className="text-blue-400 px-1"><Calendar size={16} /></div>
-                <div className="relative">
-                  <select value={timeType} onChange={(e) => setTimeType(e.target.value)} className="h-8 pl-1 pr-5 border-none bg-transparent text-xs font-bold text-slate-700 focus:ring-0 appearance-none cursor-pointer outline-none w-[84px]">
-                    <option value="create">创建时间</option><option value="finish">完成时间</option><option value="payment">收款时间</option><option value="service">服务时间</option>
-                  </select>
-                  <ChevronDown size={12} className="absolute right-0 top-2.5 text-slate-400 pointer-events-none"/>
-                </div>
-                <div className="flex items-center gap-1 flex-1">
-                   <input type="datetime-local" className="bg-transparent text-xs text-slate-600 outline-none flex-1 px-1 min-w-0 h-full" /><span className="text-slate-300">-</span><input type="datetime-local" className="bg-transparent text-xs text-slate-600 outline-none flex-1 px-1 min-w-0 h-full" />
-                </div>
-              </div>
-
-              {/* 2. 人员搜索 */}
-              <div className="flex items-center gap-2 bg-white border border-blue-100 p-1 rounded hover:border-blue-300 transition-colors shadow-sm h-[42px] flex-1 min-w-[250px]">
-                <div className="text-blue-400 px-1 shrink-0"><User size={16} /></div>
+        <div className="px-5 pb-5 pt-2 border-t border-blue-100 animate-in fade-in slide-in-from-top-2 duration-200 bg-white/50">
+           {/* Search Inputs Grid - Single Row Layout */}
+           <div className="flex items-center gap-4">
+              
+              {/* 1. Person Search */}
+              <div className="flex-1 flex items-center gap-2 bg-white border border-blue-200 p-1 rounded hover:border-blue-400 transition-colors shadow-sm min-w-[250px]">
+                <div className="text-blue-500 px-1 shrink-0"><User size={16} /></div>
                 <div className="relative shrink-0">
                   <select value={personType} onChange={(e) => setPersonType(e.target.value)} className="h-8 pl-1 pr-4 border-none bg-transparent text-xs font-bold text-slate-700 focus:ring-0 appearance-none cursor-pointer outline-none w-[160px]">
                     <option value="order">订单号/手机号/客户名称</option><option value="master">师傅</option><option value="dispatcher">派单员</option>
@@ -282,9 +276,23 @@ const SearchPanel = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => vo
                 </div>
               </div>
 
-              {/* 3. 其他搜索 */}
-              <div className="flex items-center gap-2 bg-white border border-blue-100 p-1 rounded hover:border-blue-300 transition-colors shadow-sm h-[42px] flex-1 min-w-[250px]">
-                <div className="text-blue-400 px-1 shrink-0"><SlidersHorizontal size={16} /></div>
+              {/* 2. Time Search */}
+              <div className="flex-1 flex items-center gap-2 bg-white border border-blue-200 p-1 rounded hover:border-blue-400 transition-colors shadow-sm min-w-[300px]">
+                <div className="text-blue-500 px-1"><Calendar size={16} /></div>
+                <div className="relative">
+                  <select value={timeType} onChange={(e) => setTimeType(e.target.value)} className="h-8 pl-1 pr-5 border-none bg-transparent text-xs font-bold text-slate-700 focus:ring-0 appearance-none cursor-pointer outline-none w-[84px]">
+                    <option value="create">创建时间</option><option value="finish">完成时间</option><option value="payment">收款时间</option><option value="service">服务时间</option>
+                  </select>
+                  <ChevronDown size={12} className="absolute right-0 top-2.5 text-slate-400 pointer-events-none"/>
+                </div>
+                <div className="flex items-center gap-1 flex-1">
+                   <input type="datetime-local" className="bg-transparent text-xs text-slate-600 outline-none flex-1 px-1 min-w-0 h-full" /><span className="text-slate-300">-</span><input type="datetime-local" className="bg-transparent text-xs text-slate-600 outline-none flex-1 px-1 min-w-0 h-full" />
+                </div>
+              </div>
+
+              {/* 3. Other Search */}
+              <div className="flex-1 flex items-center gap-2 bg-white border border-blue-200 p-1 rounded hover:border-blue-400 transition-colors shadow-sm min-w-[250px]">
+                <div className="text-blue-500 px-1 shrink-0"><SlidersHorizontal size={16} /></div>
                 <div className="relative shrink-0">
                   <select value={otherType} onChange={(e) => setOtherType(e.target.value)} className="h-8 pl-1 pr-4 border-none bg-transparent text-xs font-bold text-slate-700 focus:ring-0 appearance-none cursor-pointer outline-none w-[80px]">
                     <option value="status">状态</option><option value="service">服务项目</option><option value="region">地域</option><option value="source">来源</option><option value="dispatch">派单方式</option><option value="extension">分机号</option><option value="creator">创建人</option><option value="replenishment">是否补款</option><option value="workphone">工作机</option>
@@ -305,11 +313,16 @@ const SearchPanel = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => vo
                 </div>
               </div>
 
-              {/* 4. 按钮组 */}
-              <div className="flex items-center gap-2 h-[42px] min-w-[180px] justify-end ml-auto">
-                  <button className="h-full px-4 bg-white text-slate-600 hover:text-blue-600 text-xs rounded transition-colors border border-slate-200 hover:border-blue-300 shadow-sm font-medium">重置</button>
-                  <button onClick={onToggle} className="h-full px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs rounded transition-all font-bold shadow-md flex items-center gap-2 active:scale-95"><Search size={14} /> 立即搜索</button>
+              {/* 4. Buttons */}
+              <div className="flex items-center justify-end gap-4 min-w-[200px] ml-auto">
+                  <button className="h-[42px] px-6 bg-white text-slate-600 hover:text-blue-600 text-xs rounded transition-colors border border-slate-200 hover:border-blue-400 shadow-sm font-medium min-w-[80px]">
+                      重置
+                  </button>
+                  <button onClick={onToggle} className="h-[42px] px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs rounded transition-all font-bold shadow-md flex items-center gap-2 active:scale-95 justify-center min-w-[120px]">
+                      <Search size={14} /> 立即搜索
+                  </button>
               </div>
+
            </div>
         </div>
       )}
@@ -317,11 +330,11 @@ const SearchPanel = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => vo
   );
 };
 
-// --- 新增：录单弹窗组件 ---
+// --- RecordOrderModal 组件定义 ---
 const RecordOrderModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const [isPasteMode, setIsPasteMode] = useState(false);
   const [pastedImages, setPastedImages] = useState<string[]>([]);
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]); // 模拟已上传图片
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]); 
   const pasteAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -359,17 +372,13 @@ const RecordOrderModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
   return createPortal(
     <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200">
        <div className="bg-white w-[1000px] h-[85vh] rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-          {/* Header */}
           <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-bold text-gray-800">新增订单</h3>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors"><X size={24}/></button>
           </div>
           
-          {/* Content - Scrollable */}
           <div className="flex-1 overflow-y-auto p-6 flex gap-6">
-             {/* Left Form */}
              <div className="flex-1 space-y-5">
-                {/* Service Item */}
                 <div className="grid grid-cols-[80px_1fr] gap-4 items-center">
                     <label className="text-sm font-medium text-gray-700 text-right"><span className="text-red-500">*</span> 服务项目</label>
                     <div className="flex items-center gap-4">
@@ -377,26 +386,18 @@ const RecordOrderModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                          <span className="text-xs text-gray-500 whitespace-nowrap">质保期： 展示质保期</span>
                     </div>
                 </div>
-                
-                {/* Region */}
                 <div className="grid grid-cols-[80px_1fr] gap-4 items-center">
                     <label className="text-sm font-medium text-gray-700 text-right"><span className="text-red-500">*</span> 地域</label>
                     <input type="text" placeholder="请输入关键词搜索" className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
                 </div>
-                
-                {/* Address */}
                 <div className="grid grid-cols-[80px_1fr] gap-4 items-start">
                     <label className="text-sm font-medium text-gray-700 text-right mt-2"><span className="text-red-500">*</span> 地址</label>
                     <textarea placeholder="请输入内容" className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 h-20 resize-none"></textarea>
                 </div>
-                
-                {/* Details */}
                 <div className="grid grid-cols-[80px_1fr] gap-4 items-start">
                     <label className="text-sm font-medium text-gray-700 text-right mt-2">详情</label>
                     <textarea placeholder="请输入详情" className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 h-20 resize-none"></textarea>
                 </div>
-                
-                {/* Expected Time */}
                 <div className="grid grid-cols-[80px_1fr] gap-4 items-start">
                     <label className="text-sm font-medium text-gray-700 text-right mt-2">期望时间</label>
                     <div className="border border-blue-300 rounded-lg p-4 bg-blue-50/30 border-dashed w-full">
@@ -420,8 +421,6 @@ const RecordOrderModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                         </div>
                     </div>
                 </div>
-
-                {/* Mobile & Extension */}
                 <div className="grid grid-cols-[80px_1fr] gap-4 items-center">
                     <label className="text-sm font-medium text-gray-700 text-right"><span className="text-red-500">*</span> 手机号码</label>
                     <div className="flex gap-2">
@@ -429,14 +428,10 @@ const RecordOrderModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                         <input type="text" placeholder="分机号" className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
                     </div>
                 </div>
-
-                {/* Customer Name */}
                 <div className="grid grid-cols-[80px_1fr] gap-4 items-center">
                     <label className="text-sm font-medium text-gray-700 text-right">客户名称</label>
                     <input type="text" placeholder="请输入内容" className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
                 </div>
-                
-                {/* Source & Work Phone */}
                 <div className="grid grid-cols-2 gap-4">
                     <div className="grid grid-cols-[80px_1fr] gap-4 items-center">
                         <label className="text-sm font-medium text-gray-700 text-right"><span className="text-red-500">*</span> 订单来源</label>
@@ -449,8 +444,6 @@ const RecordOrderModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                          <input type="text" placeholder="请输入关键词搜索" className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
                     </div>
                 </div>
-
-                {/* Image Upload Section (New) */}
                 <div className="grid grid-cols-[80px_1fr] gap-4 items-start">
                     <label className="text-sm font-medium text-gray-700 text-right mt-2">图片附件</label>
                     <div className="w-full">
@@ -481,7 +474,6 @@ const RecordOrderModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                                 <div className="text-center text-sm text-blue-600 mb-3 font-medium">
                                     请按 <kbd className="bg-white border border-gray-300 rounded px-1.5 py-0.5 text-xs text-gray-600 font-sans mx-1">Ctrl + V</kbd> 粘贴图片
                                 </div>
-                                
                                 {pastedImages.length > 0 && (
                                     <div className="grid grid-cols-5 gap-3 mb-4 max-h-40 overflow-y-auto p-1">
                                         {pastedImages.map((img, idx) => (
@@ -494,7 +486,6 @@ const RecordOrderModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                                         ))}
                                     </div>
                                 )}
-
                                 <div className="flex justify-end gap-2">
                                     <button onClick={() => {setIsPasteMode(false); setPastedImages([]);}} className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-200 rounded">取消</button>
                                     <button onClick={confirmUpload} className="px-4 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 shadow-sm flex items-center gap-1">
@@ -506,39 +497,31 @@ const RecordOrderModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                     </div>
                 </div>
              </div>
-
-             {/* Right Smart Recognition */}
              <div className="w-[350px] flex flex-col gap-4 border-l border-gray-100 pl-6">
                  <div className="relative">
                     <textarea className="w-full h-32 border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:border-blue-500 resize-none" placeholder="在此粘贴或输入内容，自动识别手机号码、服务项目、地址等信息"></textarea>
                  </div>
-                 
                  <div className="text-xs text-gray-500 space-y-2">
                     <p>例如：</p>
                     <p>【客】，iyang761227,13801109798，北京市海淀区，南四环.益桥附近，燃气灶维修，点不着火，上门费30，下单30，咨询</p>
                     <p>美团，18613313500，保定市竞秀区，建南街道，租赁影棚，未报价，27</p>
                     <p>线7，18729306628，陕西省西安市雁塔区，西安高新华府，打印机维修，小问题维修100，已加微信，定金30，住这儿</p>
                  </div>
-
                  <div className="flex items-center justify-between mt-2">
                     <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded text-sm transition-colors shadow-sm">自动识别</button>
                     <div className="flex items-center gap-2">
-                       {/* Toggle Switch Mock */}
                        <div className="w-8 h-4 bg-blue-500 rounded-full relative cursor-pointer">
                           <div className="absolute right-0.5 top-0.5 w-3 h-3 bg-white rounded-full"></div>
                        </div>
                        <span className="text-xs text-blue-600">自动获取价格</span>
                     </div>
                  </div>
-
                  <div className="mt-4 flex-1 flex flex-col">
                     <h4 className="text-sm font-bold text-gray-700 mb-2">草稿暂存区</h4>
                     <div className="flex-1 bg-gray-50 rounded border border-gray-200 min-h-[100px]"></div>
                  </div>
              </div>
           </div>
-
-          {/* Footer */}
           <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
               <button className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded text-sm transition-colors shadow-sm">存入草稿箱</button>
               <button onClick={onClose} className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded text-sm hover:bg-gray-50 transition-colors">取消</button>
@@ -549,6 +532,8 @@ const RecordOrderModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
     document.body
   );
 }
+
+// --- 单元格组件 ---
 
 const TooltipCell = ({ content, maxWidthClass = "max-w-[100px]", showTooltip }: { content: string, maxWidthClass?: string, showTooltip: boolean }) => {
   return (
@@ -566,7 +551,6 @@ const TooltipCell = ({ content, maxWidthClass = "max-w-[100px]", showTooltip }: 
   );
 }
 
-// 优化：只保留服务项目文字，去掉浮窗逻辑。字号缩小30%（text-[11px]）
 const ServiceItemCell = ({ item }: { item: string }) => {
   return (
     <div className="py-1">
@@ -610,7 +594,27 @@ const StatusCell = ({ order }: { order: Order }) => {
   );
 };
 
-// Dispatch Cell removed
+const CompleteOrderModal = ({ isOpen, onClose, order }: { isOpen: boolean; onClose: () => void; order: Order | null }) => {
+  if (!isOpen || !order) return null;
+  return createPortal(
+    <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200">
+       <div className="bg-white w-[500px] rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 text-white"><h3 className="text-xl font-bold">完成订单</h3></div>
+          <div className="p-6 space-y-4">
+             <div className="flex justify-between text-sm"><span className="text-slate-500">应收金额</span><span className="font-bold text-lg text-emerald-600">¥{order.totalAmount}</span></div>
+             <input type="number" defaultValue={order.totalAmount} className="w-full border border-slate-300 rounded-lg p-2" />
+          </div>
+          <div className="p-6 border-t bg-slate-50 flex justify-end gap-3">
+             <button onClick={onClose} className="px-4 py-2 text-slate-600">取消</button>
+             <button onClick={onClose} className="px-6 py-2 bg-green-600 text-white rounded-lg">确认完成</button>
+          </div>
+       </div>
+    </div>,
+    document.body
+  );
+};
+
+// --- 其他组件 ---
 
 const OrderNoCell = ({ orderNo, hasAdvancePayment, depositAmount }: { orderNo: string; hasAdvancePayment: boolean; depositAmount?: number }) => {
   return (
@@ -729,27 +733,6 @@ const ChatModal = ({ isOpen, onClose, role, order }: { isOpen: boolean; onClose:
   );
 };
 
-const CompleteOrderModal = ({ isOpen, onClose, order }: { isOpen: boolean; onClose: () => void; order: Order | null }) => {
-  if (!isOpen || !order) return null;
-  return createPortal(
-    <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200">
-       <div className="bg-white w-[500px] rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-          <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6 text-white"><h3 className="text-xl font-bold">完成订单</h3></div>
-          <div className="p-6 space-y-4">
-             <div className="flex justify-between text-sm"><span className="text-slate-500">应收金额</span><span className="font-bold text-lg text-emerald-600">¥{order.totalAmount}</span></div>
-             <input type="number" defaultValue={order.totalAmount} className="w-full border border-slate-300 rounded-lg p-2" />
-          </div>
-          <div className="p-6 border-t bg-slate-50 flex justify-end gap-3">
-             <button onClick={onClose} className="px-4 py-2 text-slate-600">取消</button>
-             <button onClick={onClose} className="px-6 py-2 bg-green-600 text-white rounded-lg">确认完成</button>
-          </div>
-       </div>
-    </div>,
-    document.body
-  );
-};
-
-// 优化：催单单元格组件 - 增加 whitespace-nowrap
 const ReminderCell = ({ order, onRemind }: { order: Order, onRemind: (id: number) => void }) => {
   const handleRemind = async () => {
     const text = `[催单] 订单号：${order.orderNo}\n手机号：${order.mobile}\n服务项目：${order.serviceItem}\n地域：${order.region}\n详细地址：${order.address}\n详情：${order.details}`;
@@ -782,37 +765,27 @@ const App = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20; 
 
-  // New state for Record Modal
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
-
-  // 状态管理
   const [orders, setOrders] = useState<Order[]>(FULL_MOCK_DATA);
 
-  // 处理催单
   const handleRemindOrder = (id: number) => {
      setOrders(prevOrders => prevOrders.map(order => 
         order.id === id ? { ...order, isReminded: true } : order
      ));
   };
   
-  // 排序逻辑
   const sortedData = [...orders].sort((a, b) => {
     const aIsPending = a.status === OrderStatus.PendingDispatch;
     const bIsPending = b.status === OrderStatus.PendingDispatch;
     if (aIsPending && !bIsPending) return -1;
     if (!aIsPending && bIsPending) return 1;
-
-    if (a.isReminded !== b.isReminded) {
-        return a.isReminded ? 1 : -1;
-    }
-    
+    if (a.isReminded !== b.isReminded) return a.isReminded ? 1 : -1;
     return 0;
   });
 
   const totalItems = sortedData.length;
   const totalPages = Math.ceil(totalItems / pageSize);
   const currentData = sortedData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  
   const [chatState, setChatState] = useState<{isOpen: boolean; role: string; order: Order | null;}>({ isOpen: false, role: '', order: null });
   const [hoveredTooltipCell, setHoveredTooltipCell] = useState<{rowId: number, colKey: 'address' | 'details' | 'service'} | null>(null);
 
@@ -833,12 +806,8 @@ const App = () => {
       <div className="max-w-[1800px] mx-auto w-full flex-1 flex flex-col h-full">
         
         <NotificationBar />
-        
-        {/* Pass handler to open Record Modal */}
         <ActionBar onRecord={() => setIsRecordModalOpen(true)} />
-
         <SearchPanel isOpen={isSearchOpen} onToggle={() => setIsSearchOpen(!isSearchOpen)} />
-        
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden min-h-0">
           <div className="overflow-x-auto flex-1 overflow-y-auto relative">
             <table className="w-full text-left border-collapse relative">
@@ -868,12 +837,9 @@ const App = () => {
                 {currentData.map((order, index) => (
                   <tr key={order.id} onMouseLeave={handleMouseEnterOther} className="bg-white even:bg-blue-50 hover:!bg-blue-100 transition-colors group text-xs border-b border-gray-300 last:border-0 align-middle">
                     <td className="px-2 py-2 text-slate-800 font-bold text-[11px] tabular-nums whitespace-nowrap align-middle text-center" onMouseEnter={handleMouseEnterOther}>{order.mobile}</td>
-                    
-                    {/* Service Item - Removed Tooltip, Plain Text, Font Size Reduced */}
                     <td className="px-2 py-2 align-middle whitespace-nowrap" onMouseEnter={handleMouseEnterOther}>
                       <ServiceItemCell item={order.serviceItem} />
                     </td>
-                    
                     <td className="px-2 py-2 align-middle" onMouseEnter={() => setHoveredTooltipCell({rowId: order.id, colKey: 'service'})}>
                       <StatusCell order={order} />
                     </td>
@@ -901,24 +867,13 @@ const App = () => {
                     <td className="px-2 py-2 text-slate-500 text-[10px] whitespace-nowrap tabular-nums align-middle" onMouseEnter={handleMouseEnterOther}>{order.dispatchTime}</td>
                     <td className="px-2 py-2 align-middle text-center" onMouseEnter={handleMouseEnterOther}>
                       <div className="grid grid-cols-2 gap-1 justify-items-center max-w-[100px] mx-auto">
-                        <button onClick={() => handleOpenChat('派单员', order)} className="text-[11px] w-full py-0.5 rounded border border-slate-200 bg-white hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-colors whitespace-nowrap font-medium">
-                          派单员
-                        </button>
-                        <button onClick={() => handleOpenChat('运营', order)} className="text-[11px] w-full py-0.5 rounded border border-slate-200 bg-white hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-colors whitespace-nowrap font-medium">
-                          运营
-                        </button>
-                        <button onClick={() => handleOpenChat('售后', order)} className="text-[11px] w-full py-0.5 rounded border border-slate-200 bg-white hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-colors whitespace-nowrap font-medium">
-                          售后
-                        </button>
-                        <button onClick={() => handleOpenChat('群聊', order)} className="text-[11px] w-full py-0.5 rounded border border-slate-200 bg-white hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-colors whitespace-nowrap font-medium">
-                          群聊
-                        </button>
+                        <button onClick={() => handleOpenChat('派单员', order)} className="text-[11px] w-full py-0.5 rounded border border-slate-200 bg-white hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-colors whitespace-nowrap font-medium">派单员</button>
+                        <button onClick={() => handleOpenChat('运营', order)} className="text-[11px] w-full py-0.5 rounded border border-slate-200 bg-white hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-colors whitespace-nowrap font-medium">运营</button>
+                        <button onClick={() => handleOpenChat('售后', order)} className="text-[11px] w-full py-0.5 rounded border border-slate-200 bg-white hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-colors whitespace-nowrap font-medium">售后</button>
+                        <button onClick={() => handleOpenChat('群聊', order)} className="text-[11px] w-full py-0.5 rounded border border-slate-200 bg-white hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-colors whitespace-nowrap font-medium">群聊</button>
                       </div>
                     </td>
-                    {/* Updated Reminder Column */}
-                    <td className="px-2 py-2 align-middle text-center" onMouseEnter={handleMouseEnterOther}>
-                       <ReminderCell order={order} onRemind={handleRemindOrder} />
-                    </td>
+                    <td className="px-2 py-2 align-middle text-center" onMouseEnter={handleMouseEnterOther}><ReminderCell order={order} onRemind={handleRemindOrder} /></td>
                     <td className="px-2 py-2 text-center sticky right-0 bg-slate-50 shadow-[-10px_0_10px_-10px_rgba(0,0,0,0.05)] z-10 whitespace-nowrap"><ActionCell orderId={order.id} onAction={handleAction} /></td>
                   </tr>
                 ))}
