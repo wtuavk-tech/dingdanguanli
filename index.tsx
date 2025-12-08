@@ -34,7 +34,8 @@ import {
   Megaphone,
   Bell,
   Check,
-  Users
+  Users,
+  Settings
 } from 'lucide-react';
 
 // --- 类型定义 ---
@@ -88,7 +89,6 @@ const generateMockData = (): Order[] => {
 
   return Array.from({ length: 128 }).map((_, i) => {
     const id = i + 1;
-    
     let status = OrderStatus.Completed;
     let returnReason = undefined;
     let errorDetail = undefined;
@@ -174,7 +174,8 @@ const NotificationBar = () => {
   );
 };
 
-const ActionBar = ({ onRecord }: { onRecord: () => void }) => {
+// 优化：ActionBar 包含高级筛选开关，放在黑名单后面
+const ActionBar = ({ onRecord, isSearchOpen, onToggleSearch }: { onRecord: () => void, isSearchOpen: boolean, onToggleSearch: () => void }) => {
   return (
     <div className="flex items-center gap-6 mb-3 px-1">
       <div className="flex items-center gap-3">
@@ -191,146 +192,166 @@ const ActionBar = ({ onRecord }: { onRecord: () => void }) => {
       
       <div className="h-5 w-px bg-slate-300"></div>
       
-      <div className="flex items-center gap-6 text-xs text-slate-600 font-medium">
+      <div className="flex items-center gap-6 text-xs text-slate-600 font-medium flex-1">
         <button className="hover:text-blue-600 transition-colors hover:bg-white hover:shadow-sm px-2 py-1 rounded">批量完成</button>
         <button className="hover:text-blue-600 transition-colors hover:bg-white hover:shadow-sm px-2 py-1 rounded">批量作废</button>
         <button className="hover:text-blue-600 transition-colors hover:bg-white hover:shadow-sm px-2 py-1 rounded">存疑号码</button>
         <button className="hover:text-blue-600 transition-colors hover:bg-white hover:shadow-sm px-2 py-1 rounded">黑名单</button>
+        
+        {/* 高级筛选按钮移动到这里 - 保持原有样式逻辑 */}
+        <button 
+          onClick={onToggleSearch}
+          className={`flex items-center gap-1.5 transition-all active:scale-95 px-5 py-1.5 rounded shadow-md h-8 text-xs font-medium ml-auto animate-pulse 
+            ${isSearchOpen 
+              ? 'bg-blue-700 text-white shadow-blue-300' 
+              : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200'}`}
+        >
+            <Settings size={14} />
+            <span>{isSearchOpen ? '收起高级筛选' : '点这高级筛选'}</span>
+            {isSearchOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        </button>
       </div>
     </div>
   );
 };
 
-const BlockStat = ({ label, value, color = "text-slate-700", highlight = false }: { label: string, value: string | number, color?: string, highlight?: boolean }) => (
-  <div className="flex flex-col items-center justify-center border border-blue-100 rounded px-2 py-1.5 flex-1 h-[42px] transition-all hover:bg-blue-50/30 hover:border-blue-200 shadow-sm bg-white">
-    <span className="text-[10px] text-slate-500 leading-none mb-1">{label}</span>
-    <span className={`font-mono font-bold ${highlight ? 'text-emerald-600' : color} text-xs leading-none`}>{value}</span>
-  </div>
-);
-
-const SearchPanel = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) => {
+// --- 重构：SearchPanel (纯筛选区，9列布局，无顶部条) ---
+const SearchPanel = ({ isOpen }: { isOpen: boolean }) => {
   const [timeType, setTimeType] = useState('create');
-  const [personType, setPersonType] = useState('order');
-  const [otherType, setOtherType] = useState('status');
 
-  const stats = {
-    record: 128,
-    error: 3,
-    conversion: '98.5%'
-  };
+  if (!isOpen) return null;
 
   return (
-    <div className={`shadow-sm mb-3 transition-all duration-300 ease-out relative rounded-lg border border-blue-200 bg-[#F0F7FF]`}>
-      
-      {/* 1. 常驻数据概览条 (Header) */}
-      <div className="flex items-center justify-between px-6 py-3 min-h-[56px]">
-         <div className="flex items-center gap-12">
-            <div className="flex items-center gap-2 text-blue-700">
-               <Activity size={20} />
-               <span className="text-base font-bold tracking-wide">数据概览</span>
-            </div>
-            
-            <div className="flex items-center gap-12">
-               <div className="flex items-center gap-2">
-                  <span className="text-sm text-slate-600 font-medium">录单:</span>
-                  <span className="text-lg font-bold text-slate-900 font-mono">{stats.record}</span>
-               </div>
-               <div className="flex items-center gap-2">
-                  <span className="text-sm text-slate-600 font-medium">报错:</span>
-                  <span className="text-lg font-bold text-red-600 font-mono">{stats.error}</span>
-               </div>
-               <div className="flex items-center gap-2">
-                  <span className="text-sm text-slate-600 font-medium">转化率:</span>
-                  <span className="text-lg font-bold text-slate-900 font-mono">{stats.conversion}</span>
-               </div>
-            </div>
-         </div>
-
-         <button 
-            onClick={onToggle}
-            className={`flex items-center gap-1.5 text-sm font-medium transition-colors px-3 py-1.5 rounded-full ${isOpen ? 'text-blue-700 bg-blue-100' : 'text-blue-600 hover:bg-blue-100/50 hover:text-blue-700'}`}
-         >
-            <Search size={16} />
-            <span>{isOpen ? '收起高级筛选' : '点这高级筛选'}</span>
-            {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-         </button>
-      </div>
-
-      {/* 2. 展开后的筛选区域 (Filters) */}
-      {isOpen && (
-        <div className="px-5 pb-5 pt-2 border-t border-blue-100 animate-in fade-in slide-in-from-top-2 duration-200 bg-white/50">
-           {/* Search Inputs Grid - Single Row Layout */}
-           <div className="flex items-center gap-4">
+    <div className="shadow-sm mb-3 transition-all duration-300 ease-out relative rounded-lg border border-blue-200 bg-[#F0F7FF] px-5 py-4 animate-in fade-in slide-in-from-top-2">
+       <div className="flex flex-col gap-3">
+          
+          {/* Grid Layout: 9 Columns */}
+          <div className="grid grid-cols-9 gap-3">
+              {/* --- ROW 1 (9 inputs) --- */}
               
-              {/* 1. Person Search */}
-              <div className="flex-1 flex items-center gap-2 bg-white border border-blue-200 p-1 rounded hover:border-blue-400 transition-colors shadow-sm min-w-[250px]">
-                <div className="text-blue-500 px-1 shrink-0"><User size={16} /></div>
-                <div className="relative shrink-0">
-                  <select value={personType} onChange={(e) => setPersonType(e.target.value)} className="h-8 pl-1 pr-4 border-none bg-transparent text-xs font-bold text-slate-700 focus:ring-0 appearance-none cursor-pointer outline-none w-[160px]">
-                    <option value="order">订单号/手机号/客户名称</option><option value="master">师傅</option><option value="dispatcher">派单员</option>
+              {/* 1. Order/Mobile/Customer */}
+              <div className="flex items-center gap-2 col-span-1">
+                  <label className="text-xs text-slate-500 whitespace-nowrap min-w-[30px] text-right">关键词</label>
+                  <input type="text" className="h-8 w-full px-2 border border-blue-200 rounded text-xs focus:border-blue-500 focus:outline-none bg-white placeholder-slate-300" placeholder="订单号/手机/客户..." />
+              </div>
+              {/* 2. Extension */}
+              <div className="flex items-center gap-2 col-span-1">
+                  <label className="text-xs text-slate-500 whitespace-nowrap min-w-[30px] text-right">分机</label>
+                  <input type="text" className="h-8 w-full px-2 border border-blue-200 rounded text-xs focus:border-blue-500 focus:outline-none bg-white placeholder-slate-300" placeholder="请输入..." />
+              </div>
+              {/* 3. Creator */}
+              <div className="flex items-center gap-2 col-span-1">
+                  <label className="text-xs text-slate-500 whitespace-nowrap min-w-[30px] text-right">创建人</label>
+                  <input type="text" className="h-8 w-full px-2 border border-blue-200 rounded text-xs focus:border-blue-500 focus:outline-none bg-white placeholder-slate-300" placeholder="请输入..." />
+              </div>
+              {/* 4. Service Item */}
+              <div className="flex items-center gap-2 col-span-1">
+                  <label className="text-xs text-slate-500 whitespace-nowrap min-w-[30px] text-right">项目</label>
+                  <input type="text" className="h-8 w-full px-2 border border-blue-200 rounded text-xs focus:border-blue-500 focus:outline-none bg-white placeholder-slate-300" placeholder="服务项目..." />
+              </div>
+              {/* 5. Region */}
+              <div className="flex items-center gap-2 col-span-1">
+                  <label className="text-xs text-slate-500 whitespace-nowrap min-w-[30px] text-right">地域</label>
+                  <input type="text" className="h-8 w-full px-2 border border-blue-200 rounded text-xs focus:border-blue-500 focus:outline-none bg-white placeholder-slate-300" placeholder="请输入..." />
+              </div>
+              {/* 6. Status */}
+              <div className="flex items-center gap-2 col-span-1">
+                  <label className="text-xs text-slate-500 whitespace-nowrap min-w-[30px] text-right">状态</label>
+                  <select className="h-8 w-full px-2 border border-blue-200 rounded text-xs focus:border-blue-500 focus:outline-none bg-white">
+                    <option value="">全部</option><option value="PendingDispatch">待派单</option><option value="Completed">已完成</option>
                   </select>
-                  <ChevronDown size={12} className="absolute right-0 top-2.5 text-slate-400 pointer-events-none"/>
-                </div>
-                <div className="flex-1 h-full min-w-0">
-                   <input type="text" className="bg-transparent text-xs text-slate-600 outline-none w-full h-full px-2 placeholder-slate-400 border-l border-slate-100" placeholder="关键字..." />
-                </div>
+              </div>
+              {/* 7. Source */}
+              <div className="flex items-center gap-2 col-span-1">
+                  <label className="text-xs text-slate-500 whitespace-nowrap min-w-[30px] text-right">来源</label>
+                  <select className="h-8 w-full px-2 border border-blue-200 rounded text-xs focus:border-blue-500 focus:outline-none bg-white">
+                    <option value="">全部</option><option value="app">小程序</option><option value="phone">电话</option>
+                  </select>
+              </div>
+               {/* 8. Dispatch Method */}
+              <div className="flex items-center gap-2 col-span-1">
+                  <label className="text-xs text-slate-500 whitespace-nowrap min-w-[30px] text-right">方式</label>
+                  <select className="h-8 w-full px-2 border border-blue-200 rounded text-xs focus:border-blue-500 focus:outline-none bg-white">
+                    <option value="">全部</option><option value="auto">系统</option><option value="manual">人工</option>
+                  </select>
+              </div>
+               {/* 9. Is Replenishment */}
+              <div className="flex items-center gap-2 col-span-1">
+                  <label className="text-xs text-slate-500 whitespace-nowrap min-w-[30px] text-right">补款</label>
+                  <select className="h-8 w-full px-2 border border-blue-200 rounded text-xs focus:border-blue-500 focus:outline-none bg-white">
+                    <option value="">全部</option><option value="yes">是</option><option value="no">否</option>
+                  </select>
               </div>
 
-              {/* 2. Time Search */}
-              <div className="flex-1 flex items-center gap-2 bg-white border border-blue-200 p-1 rounded hover:border-blue-400 transition-colors shadow-sm min-w-[300px]">
-                <div className="text-blue-500 px-1"><Calendar size={16} /></div>
-                <div className="relative">
-                  <select value={timeType} onChange={(e) => setTimeType(e.target.value)} className="h-8 pl-1 pr-5 border-none bg-transparent text-xs font-bold text-slate-700 focus:ring-0 appearance-none cursor-pointer outline-none w-[84px]">
-                    <option value="create">创建时间</option><option value="finish">完成时间</option><option value="payment">收款时间</option><option value="service">服务时间</option>
-                  </select>
-                  <ChevronDown size={12} className="absolute right-0 top-2.5 text-slate-400 pointer-events-none"/>
-                </div>
-                <div className="flex items-center gap-1 flex-1">
-                   <input type="datetime-local" className="bg-transparent text-xs text-slate-600 outline-none flex-1 px-1 min-w-0 h-full" /><span className="text-slate-300">-</span><input type="datetime-local" className="bg-transparent text-xs text-slate-600 outline-none flex-1 px-1 min-w-0 h-full" />
-                </div>
+              {/* --- ROW 2 (Remaining 5 inputs + Time(3) + Buttons(1)) = 9 cols --- */}
+
+              {/* 10. Work Phone */}
+              <div className="flex items-center gap-2 col-span-1">
+                  <label className="text-xs text-slate-500 whitespace-nowrap min-w-[30px] text-right">工作机</label>
+                  <input type="text" className="h-8 w-full px-2 border border-blue-200 rounded text-xs focus:border-blue-500 focus:outline-none bg-white placeholder-slate-300" placeholder="请输入..." />
+              </div>
+              {/* 11. Dispatcher */}
+              <div className="flex items-center gap-2 col-span-1">
+                  <label className="text-xs text-slate-500 whitespace-nowrap min-w-[30px] text-right">派单员</label>
+                  <input type="text" className="h-8 w-full px-2 border border-blue-200 rounded text-xs focus:border-blue-500 focus:outline-none bg-white placeholder-slate-300" placeholder="请输入..." />
+              </div>
+              {/* 12. Master */}
+              <div className="flex items-center gap-2 col-span-1">
+                  <label className="text-xs text-slate-500 whitespace-nowrap min-w-[30px] text-right">师傅</label>
+                  <input type="text" className="h-8 w-full px-2 border border-blue-200 rounded text-xs focus:border-blue-500 focus:outline-none bg-white placeholder-slate-300" placeholder="请输入..." />
+              </div>
+              {/* 13. Offline Master Phone */}
+              <div className="flex items-center gap-2 col-span-1">
+                  <label className="text-xs text-slate-500 whitespace-nowrap min-w-[30px] text-right">线师号</label>
+                  <input type="text" className="h-8 w-full px-2 border border-blue-200 rounded text-xs focus:border-blue-500 focus:outline-none bg-white placeholder-slate-300" placeholder="请输入..." />
+              </div>
+              {/* 14. Cost Ratio */}
+              <div className="flex items-center gap-2 col-span-1">
+                  <label className="text-xs text-slate-500 whitespace-nowrap min-w-[30px] text-right">比例</label>
+                  <input type="text" className="h-8 w-full px-2 border border-blue-200 rounded text-xs focus:border-blue-500 focus:outline-none bg-white placeholder-slate-300" placeholder="请输入..." />
               </div>
 
-              {/* 3. Other Search */}
-              <div className="flex-1 flex items-center gap-2 bg-white border border-blue-200 p-1 rounded hover:border-blue-400 transition-colors shadow-sm min-w-[250px]">
-                <div className="text-blue-500 px-1 shrink-0"><SlidersHorizontal size={16} /></div>
-                <div className="relative shrink-0">
-                  <select value={otherType} onChange={(e) => setOtherType(e.target.value)} className="h-8 pl-1 pr-4 border-none bg-transparent text-xs font-bold text-slate-700 focus:ring-0 appearance-none cursor-pointer outline-none w-[80px]">
-                    <option value="status">状态</option><option value="service">服务项目</option><option value="region">地域</option><option value="source">来源</option><option value="dispatch">派单方式</option><option value="extension">分机号</option><option value="creator">创建人</option><option value="replenishment">是否补款</option><option value="workphone">工作机</option>
-                  </select>
-                  <ChevronDown size={12} className="absolute right-0 top-2.5 text-slate-400 pointer-events-none"/>
-                </div>
-                <div className="flex-1 h-full min-w-0">
-                   {otherType === 'status' ? (
-                     <div className="relative w-full h-full">
-                        <select className="h-full w-full px-2 border-l border-slate-100 text-xs text-slate-600 focus:outline-none bg-transparent appearance-none cursor-pointer">
-                          <option value="">全部</option><option value="PendingDispatch">待派单</option><option value="Completed">已完成</option>
-                        </select>
-                        <ChevronDown size={12} className="absolute right-2 top-3 text-slate-400 pointer-events-none"/>
-                     </div>
-                   ) : (
-                     <input type="text" className="bg-transparent text-xs text-slate-600 outline-none w-full h-full px-2 placeholder-slate-400 border-l border-slate-100" placeholder="输入..." />
-                   )}
-                </div>
+              {/* 15. Time Filter (Span 3 Cols) */}
+              <div className="col-span-3 flex items-center gap-2">
+                  <div className="relative shrink-0">
+                    <select 
+                      value={timeType}
+                      onChange={(e) => setTimeType(e.target.value)}
+                      className="h-8 pl-2 pr-6 border border-blue-200 rounded text-xs focus:border-blue-500 focus:outline-none bg-white font-medium text-slate-700 appearance-none cursor-pointer w-[80px]"
+                    >
+                      <option value="create">创建时间</option>
+                      <option value="finish">完成时间</option>
+                      <option value="payment">收款时间</option>
+                      <option value="service">服务时间</option>
+                    </select>
+                    <ChevronDown size={12} className="absolute right-2 top-2.5 text-slate-400 pointer-events-none"/>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white border border-blue-200 rounded px-2 h-8 flex-1">
+                     <Calendar size={14} className="text-slate-400" />
+                     <input type="datetime-local" className="bg-transparent text-xs text-slate-600 outline-none flex-1 min-w-0" />
+                     <span className="text-slate-300">-</span>
+                     <input type="datetime-local" className="bg-transparent text-xs text-slate-600 outline-none flex-1 min-w-0" />
+                  </div>
               </div>
 
-              {/* 4. Buttons */}
-              <div className="flex items-center justify-end gap-4 min-w-[200px] ml-auto">
-                  <button className="h-[42px] px-6 bg-white text-slate-600 hover:text-blue-600 text-xs rounded transition-colors border border-slate-200 hover:border-blue-400 shadow-sm font-medium min-w-[80px]">
+              {/* 16. Buttons (Span 1 Col - Right Aligned) */}
+              <div className="col-span-1 flex items-center gap-2 justify-end">
+                  <button className="h-8 px-3 bg-white text-slate-600 hover:text-blue-600 text-xs rounded transition-colors border border-slate-200 hover:border-blue-400 shadow-sm font-medium w-full">
                       重置
                   </button>
-                  <button onClick={onToggle} className="h-[42px] px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs rounded transition-all font-bold shadow-md flex items-center gap-2 active:scale-95 justify-center min-w-[120px]">
-                      <Search size={14} /> 立即搜索
+                  <button className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-all font-bold shadow-md flex items-center justify-center gap-1 active:scale-95 w-full">
+                      <Search size={12} /> 搜索
                   </button>
               </div>
 
-           </div>
-        </div>
-      )}
+          </div>
+       </div>
     </div>
   );
 };
 
-// --- RecordOrderModal 组件定义 ---
+// --- Modals & Cells ---
+
 const RecordOrderModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const [isPasteMode, setIsPasteMode] = useState(false);
   const [pastedImages, setPastedImages] = useState<string[]>([]);
@@ -533,6 +554,56 @@ const RecordOrderModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
   );
 }
 
+const ChatModal = ({ isOpen, onClose, role, order }: { isOpen: boolean; onClose: () => void; role: string; order: Order | null }) => {
+  if (!isOpen || !order) return null;
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white w-[600px] h-[500px] rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="bg-slate-50 border-b p-4 flex justify-between items-center">
+          <div><h3 className="font-bold text-slate-800">联系{role}</h3><p className="text-xs text-slate-500 mt-1">订单: {order.orderNo}</p></div>
+          <button onClick={onClose} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><X size={20} className="text-slate-500" /></button>
+        </div>
+        <div className="flex-1 bg-slate-100 p-4 overflow-y-auto space-y-4">
+          {role === '群聊' ? (
+             <div className="flex justify-center"><span className="text-xs text-slate-400 bg-slate-200 px-3 py-1 rounded-full">您已加入群聊</span></div>
+          ) : (
+            <div className="flex gap-3"><div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">{role[0]}</div><div className="bg-white p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl shadow-sm text-sm text-slate-700 max-w-[80%]">您好，我是{role}。</div></div>
+          )}
+        </div>
+        <div className="p-4 bg-white border-t">
+          <div className="flex gap-2"><input type="text" placeholder="输入消息..." className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none" /><button className="bg-blue-600 text-white px-4 py-2 rounded-lg"><Send size={18} /></button></div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+const ReminderCell = ({ order, onRemind }: { order: Order, onRemind: (id: number) => void }) => {
+  const handleRemind = async () => {
+    const text = `[催单] 订单号：${order.orderNo}\n手机号：${order.mobile}\n服务项目：${order.serviceItem}\n地域：${order.region}\n详细地址：${order.address}\n详情：${order.details}`;
+    try {
+        await navigator.clipboard.writeText(text);
+        onRemind(order.id);
+    } catch (err) {
+        alert("复制失败");
+    }
+  };
+
+  if (order.isReminded) {
+     return <span className="text-[10px] text-gray-400 font-medium select-none whitespace-nowrap">已催单</span>;
+  }
+
+  return (
+     <button 
+        onClick={handleRemind}
+        className="px-2 py-0.5 bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100 hover:border-orange-300 text-[10px] rounded shadow-sm transition-colors flex items-center gap-1 whitespace-nowrap"
+     >
+       <Bell size={10} /> 催单
+     </button>
+  );
+}
+
 // --- 单元格组件 ---
 
 const TooltipCell = ({ content, maxWidthClass = "max-w-[100px]", showTooltip }: { content: string, maxWidthClass?: string, showTooltip: boolean }) => {
@@ -613,8 +684,6 @@ const CompleteOrderModal = ({ isOpen, onClose, order }: { isOpen: boolean; onClo
     document.body
   );
 };
-
-// --- 其他组件 ---
 
 const OrderNoCell = ({ orderNo, hasAdvancePayment, depositAmount }: { orderNo: string; hasAdvancePayment: boolean; depositAmount?: number }) => {
   return (
@@ -708,56 +777,6 @@ const ActionCell = ({ orderId, onAction }: { orderId: number; onAction: (action:
   );
 };
 
-const ChatModal = ({ isOpen, onClose, role, order }: { isOpen: boolean; onClose: () => void; role: string; order: Order | null }) => {
-  if (!isOpen || !order) return null;
-  return createPortal(
-    <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white w-[600px] h-[500px] rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="bg-slate-50 border-b p-4 flex justify-between items-center">
-          <div><h3 className="font-bold text-slate-800">联系{role}</h3><p className="text-xs text-slate-500 mt-1">订单: {order.orderNo}</p></div>
-          <button onClick={onClose} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><X size={20} className="text-slate-500" /></button>
-        </div>
-        <div className="flex-1 bg-slate-100 p-4 overflow-y-auto space-y-4">
-          {role === '群聊' ? (
-             <div className="flex justify-center"><span className="text-xs text-slate-400 bg-slate-200 px-3 py-1 rounded-full">您已加入群聊</span></div>
-          ) : (
-            <div className="flex gap-3"><div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">{role[0]}</div><div className="bg-white p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl shadow-sm text-sm text-slate-700 max-w-[80%]">您好，我是{role}。</div></div>
-          )}
-        </div>
-        <div className="p-4 bg-white border-t">
-          <div className="flex gap-2"><input type="text" placeholder="输入消息..." className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none" /><button className="bg-blue-600 text-white px-4 py-2 rounded-lg"><Send size={18} /></button></div>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-};
-
-const ReminderCell = ({ order, onRemind }: { order: Order, onRemind: (id: number) => void }) => {
-  const handleRemind = async () => {
-    const text = `[催单] 订单号：${order.orderNo}\n手机号：${order.mobile}\n服务项目：${order.serviceItem}\n地域：${order.region}\n详细地址：${order.address}\n详情：${order.details}`;
-    try {
-        await navigator.clipboard.writeText(text);
-        onRemind(order.id);
-    } catch (err) {
-        alert("复制失败");
-    }
-  };
-
-  if (order.isReminded) {
-     return <span className="text-[10px] text-gray-400 font-medium select-none whitespace-nowrap">已催单</span>;
-  }
-
-  return (
-     <button 
-        onClick={handleRemind}
-        className="px-2 py-0.5 bg-orange-50 text-orange-600 border border-orange-200 hover:bg-orange-100 hover:border-orange-300 text-[10px] rounded shadow-sm transition-colors flex items-center gap-1 whitespace-nowrap"
-     >
-       <Bell size={10} /> 催单
-     </button>
-  );
-}
-
 const App = () => {
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
@@ -806,8 +825,15 @@ const App = () => {
       <div className="max-w-[1800px] mx-auto w-full flex-1 flex flex-col h-full">
         
         <NotificationBar />
-        <ActionBar onRecord={() => setIsRecordModalOpen(true)} />
+        {/* Pass toggle function and state to ActionBar */}
+        <ActionBar 
+          onRecord={() => setIsRecordModalOpen(true)} 
+          isSearchOpen={isSearchOpen}
+          onToggleSearch={() => setIsSearchOpen(!isSearchOpen)}
+        />
+        {/* SearchPanel only displays content, toggle control is outside now but we pass it just in case or for closing */}
         <SearchPanel isOpen={isSearchOpen} onToggle={() => setIsSearchOpen(!isSearchOpen)} />
+        
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden min-h-0">
           <div className="overflow-x-auto flex-1 overflow-y-auto relative">
             <table className="w-full text-left border-collapse relative">
@@ -837,9 +863,12 @@ const App = () => {
                 {currentData.map((order, index) => (
                   <tr key={order.id} onMouseLeave={handleMouseEnterOther} className="bg-white even:bg-blue-50 hover:!bg-blue-100 transition-colors group text-xs border-b border-gray-300 last:border-0 align-middle">
                     <td className="px-2 py-2 text-slate-800 font-bold text-[11px] tabular-nums whitespace-nowrap align-middle text-center" onMouseEnter={handleMouseEnterOther}>{order.mobile}</td>
+                    
+                    {/* Service Item - Removed Tooltip, Plain Text, Font Size Reduced */}
                     <td className="px-2 py-2 align-middle whitespace-nowrap" onMouseEnter={handleMouseEnterOther}>
                       <ServiceItemCell item={order.serviceItem} />
                     </td>
+                    
                     <td className="px-2 py-2 align-middle" onMouseEnter={() => setHoveredTooltipCell({rowId: order.id, colKey: 'service'})}>
                       <StatusCell order={order} />
                     </td>
